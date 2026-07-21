@@ -1,0 +1,641 @@
+// Plataforma de Treinamento Interno Corporativo (LMS Corporativo)
+// Schema de dados principal.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  ADMIN
+  MANAGER
+  INSTRUCTOR
+  EMPLOYEE
+}
+
+enum LessonType {
+  VIDEO
+  PDF
+  PRESENTATION
+  QUIZ
+}
+
+enum MaterialType {
+  PDF
+  SPREADSHEET
+  SLIDE
+  OTHER
+}
+
+enum EnrollmentStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+  EXPIRED
+}
+
+enum AssignmentReason {
+  MANUAL
+  ROLE
+  DEPARTMENT
+  ONBOARDING
+  RECERTIFICATION
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SLACK
+  TEAMS
+}
+
+enum NotificationType {
+  COURSE_ASSIGNED
+  DEADLINE_REMINDER
+  CERTIFICATE_ISSUED
+  RECERTIFICATION_DUE
+  BADGE_EARNED
+  QUIZ_RESULT
+  GENERAL
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+}
+
+enum QuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+}
+
+// ---------------------------------------------------------------------------
+// Identidade, organização e RBAC
+// ---------------------------------------------------------------------------
+
+model Department {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  users             User[]
+  learningPathRules LearningPathTargetDepartment[]
+  courseRules       CourseTargetDepartment[]
+  competencyGaps    UserCompetency[]                @relation("DepartmentCompetencySnapshot")
+
+  @@map("departments")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String?
+  role         Role      @default(EMPLOYEE)
+  jobTitle     String?
+  locale       String    @default("pt-BR")
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  managerId String?
+  manager   User?   @relation("ManagerReports", fields: [managerId], references: [id])
+  reports   User[]  @relation("ManagerReports")
+
+  coursesCreated    Course[]           @relation("CourseCreatedBy")
+  enrollments       Enrollment[]
+  lessonProgress    LessonProgress[]
+  quizAttempts      QuizAttempt[]
+  certificates      Certificate[]
+  notes             Note[]
+  feedback          CourseFeedback[]
+  points            PointsLedger[]
+  badges            UserBadge[]
+  streak            StreakRecord?
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+  chatSessions      ChatSession[]
+  competencies      UserCompetency[]
+
+  @@index([departmentId])
+  @@index([managerId])
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Conteúdo: cursos, módulos, aulas, materiais
+// ---------------------------------------------------------------------------
+
+model Course {
+  id                          String   @id @default(cuid())
+  title                       String
+  description                 String
+  category                    String
+  coverUrl                    String?
+  published                   Boolean  @default(false)
+  durationMinutes             Int      @default(0)
+  recertificationPeriodMonths Int? // null = não exige recertificação
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  createdById String
+  createdBy   User   @relation("CourseCreatedBy", fields: [createdById], references: [id])
+
+  targetRoles       CourseTargetRole[]
+  targetDepartments CourseTargetDepartment[]
+
+  modules       Module[]
+  enrollments   Enrollment[]
+  certificates  Certificate[]
+  feedback      CourseFeedback[]
+  competencies  CourseCompetency[]
+  pathCourses   LearningPathCourse[]
+
+  @@index([category])
+  @@map("courses")
+}
+
+model CourseTargetRole {
+  id       String @id @default(cuid())
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  role     Role
+
+  @@unique([courseId, role])
+  @@map("course_target_roles")
+}
+
+model CourseTargetDepartment {
+  id           String     @id @default(cuid())
+  courseId     String
+  course       Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+
+  @@unique([courseId, departmentId])
+  @@map("course_target_departments")
+}
+
+model Module {
+  id       String @id @default(cuid())
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title    String
+  order    Int
+
+  lessons Lesson[]
+  quizzes Quiz[]
+
+  @@index([courseId])
+  @@map("modules")
+}
+
+model Lesson {
+  id                 String     @id @default(cuid())
+  moduleId           String
+  module              Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title              String
+  order              Int
+  type               LessonType @default(VIDEO)
+  videoUrl           String?
+  videoDurationSeconds Int?
+  transcript         String? // texto completo, usado para RAG e legendas
+  summary            String? // resumo executivo gerado por IA
+  captionSegments    Json? // [{start,end,text}]
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  materials LessonMaterial[]
+  progress  LessonProgress[]
+  notes     Note[]
+  quizzes   Quiz[]
+  chunks    DocumentChunk[]
+
+  @@index([moduleId])
+  @@map("lessons")
+}
+
+model LessonMaterial {
+  id            String       @id @default(cuid())
+  lessonId      String
+  lesson        Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  name          String
+  url           String
+  type          MaterialType @default(OTHER)
+  extractedText String? // texto extraído do PDF/material, usado para indexação RAG
+
+  chunks DocumentChunk[]
+
+  @@index([lessonId])
+  @@map("lesson_materials")
+}
+
+// ---------------------------------------------------------------------------
+// Trilhas de aprendizagem
+// ---------------------------------------------------------------------------
+
+model LearningPath {
+  id          String  @id @default(cuid())
+  title       String
+  description String
+  isOnboarding Boolean @default(false)
+  createdAt   DateTime @default(now())
+
+  targetRoles       LearningPathTargetRole[]
+  targetDepartments LearningPathTargetDepartment[]
+  courses           LearningPathCourse[]
+  enrollments       Enrollment[]
+  certificates      Certificate[]
+
+  @@map("learning_paths")
+}
+
+model LearningPathTargetRole {
+  id             String       @id @default(cuid())
+  learningPathId String
+  learningPath   LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  role           Role
+
+  @@unique([learningPathId, role])
+  @@map("learning_path_target_roles")
+}
+
+model LearningPathTargetDepartment {
+  id             String       @id @default(cuid())
+  learningPathId String
+  learningPath   LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  departmentId   String
+  department     Department   @relation(fields: [departmentId], references: [id])
+
+  @@unique([learningPathId, departmentId])
+  @@map("learning_path_target_departments")
+}
+
+model LearningPathCourse {
+  id             String       @id @default(cuid())
+  learningPathId String
+  learningPath   LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  courseId       String
+  course         Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  order          Int
+
+  @@unique([learningPathId, courseId])
+  @@map("learning_path_courses")
+}
+
+// ---------------------------------------------------------------------------
+// Matrículas e progresso
+// ---------------------------------------------------------------------------
+
+model Enrollment {
+  id       String           @id @default(cuid())
+  userId   String
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  courseId       String?
+  course         Course?       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  learningPathId String?
+  learningPath   LearningPath? @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+
+  status           EnrollmentStatus @default(NOT_STARTED)
+  assignedReason    AssignmentReason @default(MANUAL)
+  dueDate           DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@unique([userId, learningPathId])
+  @@index([userId])
+  @@index([status])
+  @@map("enrollments")
+}
+
+model LessonProgress {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId         String
+  lesson           Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  maxWatchedSeconds Float    @default(0)
+  lastPositionSeconds Float @default(0)
+  percent          Float     @default(0)
+  completed        Boolean   @default(false)
+  completedAt      DateTime?
+  lastHeartbeatAt  DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@map("lesson_progress")
+}
+
+// ---------------------------------------------------------------------------
+// Avaliações (quizzes)
+// ---------------------------------------------------------------------------
+
+model Quiz {
+  id            String  @id @default(cuid())
+  moduleId      String?
+  module        Module? @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  lessonId      String?
+  lesson        Lesson? @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  title         String
+  passingScore  Int     @default(70) // percentual mínimo (0-100)
+  aiGenerated   Boolean @default(false)
+  createdAt     DateTime @default(now())
+
+  questions Question[]
+  attempts  QuizAttempt[]
+
+  @@map("quizzes")
+}
+
+model Question {
+  id          String       @id @default(cuid())
+  quizId      String
+  quiz        Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  text        String
+  type        QuestionType @default(SINGLE_CHOICE)
+  order       Int          @default(0)
+  aiGenerated Boolean      @default(false)
+
+  options QuestionOption[]
+
+  @@index([quizId])
+  @@map("questions")
+}
+
+model QuestionOption {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  text       String
+  isCorrect  Boolean  @default(false)
+
+  @@index([questionId])
+  @@map("question_options")
+}
+
+model QuizAttempt {
+  id          String   @id @default(cuid())
+  quizId      String
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score       Float
+  passed      Boolean
+  answers     Json // { [questionId]: string[] }
+  attemptedAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([quizId])
+  @@map("quiz_attempts")
+}
+
+// ---------------------------------------------------------------------------
+// Certificados
+// ---------------------------------------------------------------------------
+
+model Certificate {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId         String?
+  course           Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  learningPathId   String?
+  learningPath     LearningPath? @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  verificationCode String   @unique
+  issuedAt         DateTime @default(now())
+  expiresAt        DateTime?
+
+  @@index([userId])
+  @@map("certificates")
+}
+
+// ---------------------------------------------------------------------------
+// Gamificação
+// ---------------------------------------------------------------------------
+
+model Badge {
+  id          String @id @default(cuid())
+  name        String @unique
+  description String
+  icon        String @default("award")
+  criteria    Json // regra descritiva, ex: { type: "COURSE_COMPLETIONS", count: 5 }
+
+  users UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId  String
+  badge    Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  earnedAt DateTime @default(now())
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+model PointsLedger {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  points    Int
+  reason    String
+  refId     String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("points_ledger")
+}
+
+model StreakRecord {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentStreak  Int      @default(0)
+  longestStreak  Int      @default(0)
+  lastActivityAt DateTime?
+
+  @@map("streak_records")
+}
+
+// ---------------------------------------------------------------------------
+// Anotações, feedback (NPS)
+// ---------------------------------------------------------------------------
+
+model Note {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId        String
+  lesson          Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  timestampSeconds Float
+  content         String
+  createdAt       DateTime @default(now())
+
+  @@index([userId, lessonId])
+  @@map("notes")
+}
+
+model CourseFeedback {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  rating    Int // NPS 0-10
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@map("course_feedback")
+}
+
+// ---------------------------------------------------------------------------
+// Auditoria
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Matriz de competências
+// ---------------------------------------------------------------------------
+
+model CompetencySkill {
+  id       String @id @default(cuid())
+  name     String @unique
+  category String
+
+  courses      CourseCompetency[]
+  userSkills   UserCompetency[]
+
+  @@map("competency_skills")
+}
+
+model CourseCompetency {
+  id                String          @id @default(cuid())
+  courseId          String
+  course            Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  competencySkillId String
+  competencySkill   CompetencySkill @relation(fields: [competencySkillId], references: [id], onDelete: Cascade)
+  levelGranted      Int             @default(1) // 1-5
+
+  @@unique([courseId, competencySkillId])
+  @@map("course_competencies")
+}
+
+model UserCompetency {
+  id                String          @id @default(cuid())
+  userId            String
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  competencySkillId String
+  competencySkill   CompetencySkill @relation(fields: [competencySkillId], references: [id], onDelete: Cascade)
+  level             Int             @default(0) // 0-5, 0 = gap
+  updatedAt         DateTime        @updatedAt
+
+  departmentSnapshotId String?
+  departmentSnapshot   Department? @relation("DepartmentCompetencySnapshot", fields: [departmentSnapshotId], references: [id])
+
+  @@unique([userId, competencySkillId])
+  @@map("user_competencies")
+}
+
+// ---------------------------------------------------------------------------
+// Notificações
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id        String              @id @default(cuid())
+  userId    String
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String
+  channel   NotificationChannel @default(IN_APP)
+  read      Boolean             @default(false)
+  createdAt DateTime            @default(now())
+
+  @@index([userId, read])
+  @@map("notifications")
+}
+
+// ---------------------------------------------------------------------------
+// IA: indexação vetorial (RAG) e chat
+// ---------------------------------------------------------------------------
+
+model DocumentChunk {
+  id         String   @id @default(cuid())
+  lessonId   String?
+  lesson     Lesson?  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  materialId String?
+  material   LessonMaterial? @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  content    String
+  chunkIndex Int
+  embedding  Unsupported("vector(1536)")?
+  createdAt  DateTime @default(now())
+
+  @@index([lessonId])
+  @@index([materialId])
+  @@map("document_chunks")
+}
+
+model ChatSession {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId  String?
+  createdAt DateTime @default(now())
+
+  messages ChatMessage[]
+
+  @@index([userId])
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id            String      @id @default(cuid())
+  chatSessionId String
+  chatSession   ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+  role          ChatRole
+  content       String
+  createdAt     DateTime    @default(now())
+
+  @@index([chatSessionId])
+  @@map("chat_messages")
+}
