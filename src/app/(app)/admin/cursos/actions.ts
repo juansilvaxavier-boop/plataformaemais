@@ -25,6 +25,7 @@ export async function createCourse(formData: FormData) {
   const category = String(formData.get("category") ?? "").trim();
   const recert = formData.get("recertificationPeriodMonths");
   const recertificationPeriodMonths = recert ? Number(recert) : null;
+  const coverUrl = String(formData.get("coverUrl") ?? "").trim() || null;
 
   if (!title || !description || !category) {
     throw new Error("Título, descrição e categoria são obrigatórios.");
@@ -36,6 +37,7 @@ export async function createCourse(formData: FormData) {
       description,
       category,
       recertificationPeriodMonths,
+      coverUrl,
       createdById: session.user.id,
     },
   });

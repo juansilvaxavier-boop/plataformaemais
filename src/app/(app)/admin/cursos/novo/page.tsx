@@ -28,6 +28,10 @@ export default async function NovoCursoPage() {
             <Label>Período de recertificação (meses, opcional)</Label>
             <Input name="recertificationPeriodMonths" type="number" min={1} placeholder="Ex.: 12" />
           </div>
+          <div>
+            <Label>Imagem de capa (URL, opcional)</Label>
+            <Input name="coverUrl" placeholder="https://.../capa.jpg" />
+          </div>
           <Button type="submit">Criar e continuar</Button>
         </form>
       </Card>

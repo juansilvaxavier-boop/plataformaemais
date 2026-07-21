@@ -75,6 +75,20 @@ enum ChatRole {
   ASSISTANT
 }
 
+enum ExternalTrainingType {
+  PRESENCIAL
+  WORKSHOP
+  CONFERENCIA
+  EXTERNO
+  OUTRO
+}
+
+enum ExternalTrainingStatus {
+  AGENDADO
+  REALIZADO
+  CANCELADO
+}
+
 enum QuestionType {
   SINGLE_CHOICE
   MULTIPLE_CHOICE
@@ -131,6 +145,9 @@ model User {
   auditLogs         AuditLog[]
   chatSessions      ChatSession[]
   competencies      UserCompetency[]
+
+  externalTrainingsCreated      ExternalTraining[]            @relation("ExternalTrainingCreatedBy")
+  externalTrainingParticipations ExternalTrainingParticipant[]
 
   @@index([departmentId])
   @@index([managerId])
@@ -544,6 +561,7 @@ model CompetencySkill {
 
   courses      CourseCompetency[]
   userSkills   UserCompetency[]
+  externalTrainings ExternalTrainingCompetency[]
 
   @@map("competency_skills")
 }
@@ -574,6 +592,64 @@ model UserCompetency {
 
   @@unique([userId, competencySkillId])
   @@map("user_competencies")
+}
+
+// ---------------------------------------------------------------------------
+// Treinamentos presenciais e externos
+// ---------------------------------------------------------------------------
+
+model ExternalTraining {
+  id            String                  @id @default(cuid())
+  title         String
+  description   String
+  type          ExternalTrainingType    @default(PRESENCIAL)
+  status        ExternalTrainingStatus  @default(AGENDADO)
+  provider      String? // instituição, consultoria ou instrutor externo
+  location      String? // endereço, plataforma ou "Online"
+  category      String
+  startDate     DateTime
+  endDate       DateTime?
+  durationHours Float?
+  createdAt     DateTime                @default(now())
+
+  createdById String
+  createdBy   User   @relation("ExternalTrainingCreatedBy", fields: [createdById], references: [id])
+
+  participants ExternalTrainingParticipant[]
+  competencies ExternalTrainingCompetency[]
+
+  @@index([category])
+  @@index([startDate])
+  @@map("external_trainings")
+}
+
+model ExternalTrainingParticipant {
+  id                 String    @id @default(cuid())
+  externalTrainingId String
+  externalTraining   ExternalTraining @relation(fields: [externalTrainingId], references: [id], onDelete: Cascade)
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attended           Boolean   @default(false)
+  completionDate     DateTime?
+  certificateUrl     String? // comprovante/certificado anexado pelo RH
+  notes              String?
+  createdAt          DateTime  @default(now())
+
+  @@unique([externalTrainingId, userId])
+  @@index([userId])
+  @@map("external_training_participants")
+}
+
+model ExternalTrainingCompetency {
+  id                 String           @id @default(cuid())
+  externalTrainingId String
+  externalTraining   ExternalTraining @relation(fields: [externalTrainingId], references: [id], onDelete: Cascade)
+  competencySkillId  String
+  competencySkill    CompetencySkill  @relation(fields: [competencySkillId], references: [id], onDelete: Cascade)
+  levelGranted       Int              @default(1) // 1-5
+
+  @@unique([externalTrainingId, competencySkillId])
+  @@map("external_training_competencies")
 }
 
 // ---------------------------------------------------------------------------

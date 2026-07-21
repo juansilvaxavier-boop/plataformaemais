@@ -51,9 +51,9 @@ Acesse `http://localhost:3000`. Contas de exemplo (senha `senha123` para todas):
 ### Módulos expandidos
 - **Aprendizado & Avaliação**: quizzes com nota de corte bloqueando a etapa seguinte; trilhas de aprendizagem sequenciais; materiais anexados; anotações privadas por timestamp do vídeo; NPS pós-conclusão do curso
 - **Engajamento & Gamificação**: pontos, badges configuráveis (`/admin/badges`), streak diário, ranking geral e por departamento (`/ranking`)
-- **Gestão, Liderança & Compliance**: painel do gestor com progresso dos liderados diretos; recertificação periódica configurável por curso (reabre a matrícula e zera o progresso ao vencer); relatórios de auditoria exportáveis em CSV; matriz de competências
+- **Gestão, Liderança & Compliance**: painel do gestor com progresso dos liderados diretos; recertificação periódica configurável por curso (reabre a matrícula e zera o progresso ao vencer); relatórios de auditoria exportáveis em CSV; matriz de competências; **gestão de treinamentos presenciais e externos** (`/admin/treinamentos-externos`) para registrar workshops, conferências e capacitações com instrutor externo, com controle de presença, comprovantes e competências concedidas
 - **IA avançada**: geração automática de quiz a partir da transcrição; resumo executivo de aulas; sugestões personalizadas por histórico/cargo
-- **Integrações & Experiência**: SSO (Google/Entra/Okta) condicional por env vars; webhook de onboarding automático via HRIS; notificações replicadas para Slack/Teams via webhook de entrada; legendas (.vtt) geradas a partir da transcrição; suporte multi-idioma (pt-BR/en) com seletor de idioma na barra lateral
+- **Integrações & Experiência**: SSO (Google/Entra/Okta) condicional por env vars; webhook de onboarding automático via HRIS; notificações replicadas para Slack/Teams via webhook de entrada; legendas (.vtt) geradas a partir da transcrição; suporte multi-idioma (pt-BR/en) com seletor de idioma na barra lateral; **catálogo de cursos em vitrine estilo streaming** (`/cursos`), com hero em destaque e fileiras horizontais roláveis por categoria; **integração direta com Power BI** via views SQL dedicadas e API REST autenticada (`/admin/power-bi`)
 
 ## Arquitetura e decisões relevantes
 
@@ -62,6 +62,7 @@ Acesse `http://localhost:3000`. Contas de exemplo (senha `senha123` para todas):
 - **Recertificação**: como um curso concluído não pode ter duas matrículas simultâneas (`@@unique([userId, courseId])`), o vencimento reabre a mesma matrícula (status volta a `NOT_STARTED`) e apaga o progresso de aulas/quizzes daquele curso, exigindo nova conclusão completa — fiel ao requisito de renovação anual. Em produção, agende `POST /api/admin/recertification-check` via cron externo (Vercel Cron, GitHub Actions, etc.).
 - **Legendas automáticas**: sem um provedor de ASR configurado, `src/lib/captions.ts` distribui o texto da transcrição proporcionalmente à duração do vídeo (best-effort). Para timestamps precisos, plugue um serviço de transcrição real e grave `captionSegments` com os tempos reais.
 - **i18n**: o mecanismo (`src/lib/i18n.ts`) está aplicado à navegação principal e ao dashboard como prova de conceito; estender a cobertura a 100% da interface segue o mesmo padrão de dicionário.
+- **Power BI**: seis views SQL dedicadas (`vw_bi_*`, migração `power_bi_views`) achatam matrículas, certificados, tentativas de quiz, matriz de competências, treinamentos externos e NPS para consumo direto. O conector nativo PostgreSQL do Power BI lê essas views como tabelas comuns (sem exportação manual); para cenários em nuvem sem acesso direto ao banco, os mesmos dados ficam disponíveis via `GET /api/powerbi/{dataset}` (autenticado por `x-api-key: POWERBI_API_KEY`), consumível pelo conector Web/Power Query.
 
 ## Integrações externas (dependem de credenciais)
 
@@ -75,6 +76,7 @@ Configuráveis via `.env`, todas opcionais — a plataforma opera sem elas:
 | Okta SSO | `AUTH_OKTA_*` | idem |
 | Slack/Teams | `SLACK_WEBHOOK_URL` / `TEAMS_WEBHOOK_URL` | Notificações ficam só in-app |
 | HRIS onboarding | `HRIS_WEBHOOK_API_KEY` (já gerada no `.env`) | Endpoint `/api/integrations/hris/onboarding` exige essa chave no header `x-api-key` |
+| Power BI (API REST) | `POWERBI_API_KEY` (já gerada no `.env`) | Endpoints `/api/powerbi/*` exigem essa chave no header `x-api-key`; a conexão direta via views Postgres não depende dela |
 
 ## Scripts
 

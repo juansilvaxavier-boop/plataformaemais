@@ -7,6 +7,7 @@ export const POINTS = {
   COURSE_COMPLETED: 50,
   CERTIFICATE_ISSUED: 30,
   FEEDBACK_GIVEN: 5,
+  EXTERNAL_TRAINING_COMPLETED: 40,
 } as const;
 
 export async function awardPoints(userId: string, points: number, reason: string, refId?: string) {
@@ -61,11 +62,12 @@ type BadgeCriteria =
   | { type: "COURSE_COMPLETIONS"; count: number }
   | { type: "CERTIFICATES"; count: number }
   | { type: "STREAK"; days: number }
-  | { type: "QUIZ_PERFECT"; count: number };
+  | { type: "QUIZ_PERFECT"; count: number }
+  | { type: "EXTERNAL_TRAININGS"; count: number };
 
 /** Avalia todas as badges ainda não conquistadas e concede as que atingirem o critério. */
 export async function checkAndAwardBadges(userId: string) {
-  const [badges, earnedIds, completedCourses, certificates, streak, perfectQuizzes] =
+  const [badges, earnedIds, completedCourses, certificates, streak, perfectQuizzes, externalTrainings] =
     await Promise.all([
       prisma.badge.findMany(),
       prisma.userBadge.findMany({ where: { userId }, select: { badgeId: true } }),
@@ -73,6 +75,7 @@ export async function checkAndAwardBadges(userId: string) {
       prisma.certificate.count({ where: { userId } }),
       prisma.streakRecord.findUnique({ where: { userId } }),
       prisma.quizAttempt.count({ where: { userId, score: 100 } }),
+      prisma.externalTrainingParticipant.count({ where: { userId, attended: true } }),
     ]);
 
   const earned = new Set(earnedIds.map((b) => b.badgeId));
@@ -95,6 +98,9 @@ export async function checkAndAwardBadges(userId: string) {
         break;
       case "QUIZ_PERFECT":
         met = perfectQuizzes >= criteria.count;
+        break;
+      case "EXTERNAL_TRAININGS":
+        met = externalTrainings >= criteria.count;
         break;
     }
 

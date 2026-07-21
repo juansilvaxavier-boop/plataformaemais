@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { Card, PageHeader, Badge, ProgressBar, EmptyState } from "@/components/ui";
+import { Card, PageHeader, EmptyState } from "@/components/ui";
 import { getCourseProgressPercent } from "@/lib/enrollment";
 import { getTotalPoints } from "@/lib/gamification";
 import { getPersonalizedSuggestions } from "@/lib/ai/content-generation";
+import { CourseCard } from "@/components/course-card";
+import { CourseRow } from "@/components/course-row";
 import { Flame, Trophy, Award, Bell } from "lucide-react";
 
 export default async function DashboardPage() {
@@ -59,41 +61,39 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      <h2 className="text-lg font-semibold text-slate-800 mb-3">Continue de onde parou</h2>
       {enrollments.length === 0 ? (
-        <EmptyState title="Você não tem cursos em andamento." description="Explore o catálogo de cursos." />
+        <>
+          <h2 className="text-lg font-semibold text-slate-800 mb-3">Continue de onde parou</h2>
+          <EmptyState title="Você não tem cursos em andamento." description="Explore o catálogo de cursos." />
+        </>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <CourseRow title="Continue de onde parou">
           {enrollments.map((e) => (
-            <Link key={e.id} href={`/cursos/${e.courseId}`}>
-              <Card className="hover:border-indigo-300">
-                <div className="flex items-center justify-between mb-2">
-                  <Badge>{e.course?.category}</Badge>
-                </div>
-                <h3 className="font-semibold text-slate-800 mb-2">{e.course?.title}</h3>
-                <ProgressBar percent={progress.get(e.courseId!) ?? 0} />
-              </Card>
-            </Link>
+            <CourseCard
+              key={e.id}
+              course={{
+                id: e.course!.id,
+                title: e.course!.title,
+                category: e.course!.category,
+                coverUrl: e.course!.coverUrl,
+              }}
+              enrolled
+              percent={progress.get(e.courseId!)}
+            />
           ))}
-        </div>
+        </CourseRow>
       )}
 
       {suggestions.length > 0 && (
-        <>
-          <h2 className="text-lg font-semibold text-slate-800 mb-3">Sugestões para você (IA)</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {suggestions.map((c) => (
-              <Link key={c.id} href={`/cursos/${c.id}`}>
-                <Card className="hover:border-indigo-300 h-full">
-                  <Badge tone="info" className="mb-2 w-fit">
-                    {c.category}
-                  </Badge>
-                  <h3 className="font-semibold text-slate-800 text-sm">{c.title}</h3>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </>
+        <CourseRow title="Sugestões para você (IA)">
+          {suggestions.map((c) => (
+            <CourseCard
+              key={c.id}
+              course={{ id: c.id, title: c.title, category: c.category, coverUrl: c.coverUrl }}
+              enrolled={false}
+            />
+          ))}
+        </CourseRow>
       )}
     </div>
   );

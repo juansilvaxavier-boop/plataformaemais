@@ -36,3 +36,12 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Fileiras horizontais roláveis (vitrine de cursos) sem barra de rolagem visível. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

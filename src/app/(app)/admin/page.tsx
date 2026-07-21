@@ -11,28 +11,38 @@ import {
   BarChart3,
   Target,
   Award,
+  Building,
+  LineChart,
 } from "lucide-react";
 
 export default async function AdminHomePage() {
   const session = await auth();
   assertRole(session?.user?.role, "ADMIN");
 
-  const [users, courses, paths, departments, certificates] = await Promise.all([
+  const [users, courses, paths, departments, certificates, externalTrainings] = await Promise.all([
     prisma.user.count(),
     prisma.course.count(),
     prisma.learningPath.count(),
     prisma.department.count(),
     prisma.certificate.count(),
+    prisma.externalTraining.count(),
   ]);
 
   const links = [
     { href: "/admin/usuarios", label: "Colaboradores", value: users, icon: Users },
     { href: "/admin/cursos", label: "Cursos", value: courses, icon: BookOpen },
     { href: "/admin/trilhas", label: "Trilhas", value: paths, icon: Route },
+    {
+      href: "/admin/treinamentos-externos",
+      label: "Treinamentos Presenciais e Externos",
+      value: externalTrainings,
+      icon: Building,
+    },
     { href: "/admin/departamentos", label: "Departamentos", value: departments, icon: Building2 },
     { href: "/admin/competencias", label: "Matriz de Competências", value: "", icon: Target },
     { href: "/admin/badges", label: "Badges & Gamificação", value: "", icon: Award },
     { href: "/admin/relatorios", label: "Relatórios & Auditoria", value: certificates, icon: BarChart3 },
+    { href: "/admin/power-bi", label: "Integração Power BI", value: "", icon: LineChart },
   ];
 
   return (

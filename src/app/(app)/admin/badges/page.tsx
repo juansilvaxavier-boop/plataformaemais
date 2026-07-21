@@ -32,6 +32,7 @@ export default async function BadgesPage() {
               <option value="CERTIFICATES">Certificados emitidos</option>
               <option value="STREAK">Sequência de dias (streak)</option>
               <option value="QUIZ_PERFECT">Quizzes com nota 100%</option>
+              <option value="EXTERNAL_TRAININGS">Treinamentos externos concluídos</option>
             </Select>
           </div>
           <div>
