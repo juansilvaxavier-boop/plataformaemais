@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { assertRole } from "@/lib/rbac";
 import { PageHeader, Card, Button, Input, Label, Textarea } from "@/components/ui";
+import { UploadOrUrlField } from "@/components/upload-field";
 import { createCourse } from "../actions";
 
 export default async function NovoCursoPage() {
@@ -29,8 +30,8 @@ export default async function NovoCursoPage() {
             <Input name="recertificationPeriodMonths" type="number" min={1} placeholder="Ex.: 12" />
           </div>
           <div>
-            <Label>Imagem de capa (URL, opcional)</Label>
-            <Input name="coverUrl" placeholder="https://.../capa.jpg" />
+            <Label>Imagem de capa (opcional)</Label>
+            <UploadOrUrlField name="coverUrl" placeholder="https://.../capa.jpg" />
           </div>
           <Button type="submit">Criar e continuar</Button>
         </form>

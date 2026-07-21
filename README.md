@@ -77,6 +77,31 @@ Configuráveis via `.env`, todas opcionais — a plataforma opera sem elas:
 | Slack/Teams | `SLACK_WEBHOOK_URL` / `TEAMS_WEBHOOK_URL` | Notificações ficam só in-app |
 | HRIS onboarding | `HRIS_WEBHOOK_API_KEY` (já gerada no `.env`) | Endpoint `/api/integrations/hris/onboarding` exige essa chave no header `x-api-key` |
 | Power BI (API REST) | `POWERBI_API_KEY` (já gerada no `.env`) | Endpoints `/api/powerbi/*` exigem essa chave no header `x-api-key`; a conexão direta via views Postgres não depende dela |
+| E-mail transacional (SMTP) | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | Notificações por e-mail (boas-vindas, recuperação de senha, etc.) ficam só como notificação in-app; em desenvolvimento, o link de redefinição de senha é impresso no log do servidor |
+| Recertificação automática (cron) | Secrets do repositório `APP_URL` e `CRON_API_KEY` | O workflow `.github/workflows/recertification-cron.yml` roda diariamente sem depender de conta externa (Vercel Cron, etc.) — só requer o app publicado em algum URL acessível |
+
+## Funcionalidades adicionais desta rodada
+
+- **Recuperação de senha**: `/esqueci-senha` → e-mail com link de uso único (1h) → `/redefinir-senha/[token]`. Tokens são de uso único e armazenados como hash (SHA-256), nunca em texto puro.
+- **Minha Conta** (`/conta`): dados do perfil e troca de senha (contas SSO não têm senha local).
+- **Upload de arquivos**: capas de curso, materiais de aula e comprovantes de treinamento externo podem ser enviados diretamente (armazenamento local em `public/uploads`, trocável por S3/Vercel Blob reimplementando `src/app/api/upload/route.ts`) ou informados por URL.
+- **Busca no catálogo**: campo de busca em `/cursos` filtrando por título, categoria e descrição em tempo real.
+- **Atribuição manual avulsa**: na página de um curso (`/admin/cursos/[id]`), o admin pode matricular um colaborador específico fora das regras de cargo/departamento.
+- **Rate limiting**: limitador de taxa (janela fixa, em memória) nos endpoints de chat de IA, heartbeat, tentativa de quiz, login, recuperação de senha, upload, webhook de HRIS e API do Power BI — ver `src/lib/rate-limit.ts`.
+- **Sidebar responsiva**: menu lateral vira um drawer com botão hambúrguer em telas pequenas (`src/components/sidebar-nav.tsx`).
+- **CI**: `.github/workflows/ci.yml` roda lint, testes e build a cada push/PR.
+
+## Testes
+
+Testes unitários (Vitest) cobrem a lógica pura mais crítica do sistema — a
+validação anti-fraude de reprodução de vídeo (`src/lib/heartbeat.ts`), a
+correção de quizzes (`src/lib/quiz-scoring.ts`), RBAC, rate limiting, geração
+de legendas e chunking de texto para RAG — sem depender de banco de dados.
+
+```bash
+npm test          # roda a suíte uma vez
+npm run test:watch  # modo watch
+```
 
 ## Scripts
 
@@ -84,6 +109,7 @@ Configuráveis via `.env`, todas opcionais — a plataforma opera sem elas:
 npm run dev        # servidor de desenvolvimento
 npm run build      # build de produção (também roda checagem de tipos e lint)
 npm run lint        # ESLint
+npm test            # testes unitários (Vitest)
 npm run db:seed     # popula dados de demonstração
 npx prisma studio    # explorar o banco visualmente
 ```

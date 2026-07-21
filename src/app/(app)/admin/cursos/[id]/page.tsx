@@ -19,7 +19,9 @@ import {
   AIQuizButton,
   ManualQuizForm,
   CompetencyForm,
+  ManualAssignForm,
 } from "./client-widgets";
+import { UploadOrUrlField } from "@/components/upload-field";
 import { Trash2 } from "lucide-react";
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -27,7 +29,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
   const session = await auth();
   assertRole(session?.user?.role, "INSTRUCTOR");
 
-  const [course, departments, skills] = await Promise.all([
+  const [course, departments, skills, enrolledUserIds] = await Promise.all([
     prisma.course.findUniqueOrThrow({
       where: { id },
       include: {
@@ -48,7 +50,15 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
     }),
     prisma.department.findMany({ orderBy: { name: "asc" } }),
     prisma.competencySkill.findMany({ orderBy: { name: "asc" } }),
+    prisma.enrollment.findMany({ where: { courseId: id }, select: { userId: true } }),
   ]);
+
+  const enrolledIdSet = new Set(enrolledUserIds.map((e) => e.userId));
+  const assignCandidates = await prisma.user.findMany({
+    where: { active: true, id: { notIn: [...enrolledIdSet] } },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, email: true },
+  });
 
   return (
     <div>
@@ -87,6 +97,11 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
             skills={skills}
             initial={course.competencies.map((c) => ({ skillId: c.competencySkillId, level: c.levelGranted }))}
           />
+        </div>
+
+        <div className="mt-6 pt-4 border-t border-slate-100">
+          <Label>Atribuir manualmente a um colaborador específico</Label>
+          <ManualAssignForm courseId={course.id} candidates={assignCandidates} />
         </div>
       </Card>
 
@@ -168,7 +183,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
                         <input type="hidden" name="courseId" value={course.id} />
                         <input type="hidden" name="lessonId" value={lesson.id} />
                         <Input name="name" placeholder="Nome do arquivo" required />
-                        <Input name="url" placeholder="URL do arquivo" required />
+                        <UploadOrUrlField name="url" placeholder="URL do arquivo" />
                         <Select name="type" defaultValue="PDF">
                           <option value="PDF">PDF</option>
                           <option value="SPREADSHEET">Planilha</option>

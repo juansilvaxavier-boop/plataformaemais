@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { assertRateLimit } from "@/lib/rate-limit";
 
 /**
  * Autenticação dos endpoints de exportação para Power BI: header "x-api-key"
@@ -14,7 +15,9 @@ export function assertPowerBiApiKey(req: NextRequest): NextResponse | null {
   if (!key || key !== process.env.POWERBI_API_KEY) {
     return NextResponse.json({ error: "Chave de API inválida." }, { status: 401 });
   }
-  return null;
+
+  // Uso esperado é refresh agendado de dashboards, não tráfego interativo.
+  return assertRateLimit(req, "powerbi", 60, 60 * 60 * 1000, key);
 }
 
 export async function queryBiView<T = Record<string, unknown>>(

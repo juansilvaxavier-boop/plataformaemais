@@ -4,7 +4,17 @@ import { auth } from "@/lib/auth";
 const ADMIN_ONLY_PREFIXES = ["/admin"];
 const MANAGER_PREFIXES = ["/manager"];
 const INSTRUCTOR_PREFIXES = ["/instrutor"];
-const PUBLIC_PREFIXES = ["/login", "/verify", "/api/auth", "/api/integrations/hris", "/api/powerbi"];
+const PUBLIC_PREFIXES = [
+  "/login",
+  "/verify",
+  "/esqueci-senha",
+  "/redefinir-senha",
+  "/api/auth",
+  "/api/integrations/hris",
+  "/api/powerbi",
+  "/api/admin/recertification-check",
+  "/api/password-reset",
+];
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;

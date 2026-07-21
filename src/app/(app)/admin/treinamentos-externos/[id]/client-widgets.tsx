@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Button, Input, Select } from "@/components/ui";
+import { Upload, Loader2 } from "lucide-react";
 import {
   addParticipant,
   removeParticipant,
@@ -66,6 +67,8 @@ export function ParticipantRow({
   const [notes, setNotes] = useState(participant.notes ?? "");
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function save(nextAttended: boolean) {
     setAttended(nextAttended);
@@ -78,6 +81,31 @@ export function ParticipantRow({
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     });
+  }
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (res.ok) {
+        setCertificateUrl(data.url);
+        startTransition(async () => {
+          await updateParticipantCompletion(trainingId, participant.id, {
+            attended,
+            certificateUrl: data.url,
+            notes,
+          });
+        });
+      }
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   }
 
   return (
@@ -96,20 +124,32 @@ export function ParticipantRow({
         <RemoveButton trainingId={trainingId} participantId={participant.id} />
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <Input
-          placeholder="URL do certificado/comprovante"
-          value={certificateUrl}
-          onChange={(e) => setCertificateUrl(e.target.value)}
-          onBlur={() =>
-            startTransition(async () => {
-              await updateParticipantCompletion(trainingId, participant.id, {
-                attended,
-                certificateUrl,
-                notes,
-              });
-            })
-          }
-        />
+        <div className="flex gap-1">
+          <Input
+            placeholder="URL do certificado/comprovante"
+            value={certificateUrl}
+            onChange={(e) => setCertificateUrl(e.target.value)}
+            onBlur={() =>
+              startTransition(async () => {
+                await updateParticipantCompletion(trainingId, participant.id, {
+                  attended,
+                  certificateUrl,
+                  notes,
+                });
+              })
+            }
+          />
+          <button
+            type="button"
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+            className="shrink-0 px-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+            title="Enviar arquivo"
+          >
+            {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+          </button>
+          <input ref={fileInputRef} type="file" className="hidden" onChange={handleUpload} />
+        </div>
         <Input
           placeholder="Observações"
           value={notes}

@@ -1,0 +1,24 @@
+name: Verificação de recertificação
+
+# Agendamento real, sem depender de conta externa (Vercel Cron, etc.): o
+# próprio GitHub Actions dispara este workflow periodicamente. Requer que o
+# app esteja publicado em algum lugar acessível — configure os secrets do
+# repositório APP_URL (ex.: https://sua-instancia.exemplo.com) e
+# CRON_API_KEY (mesmo valor da variável de ambiente CRON_API_KEY do deploy).
+on:
+  schedule:
+    - cron: "0 6 * * *" # todos os dias às 06:00 UTC
+  workflow_dispatch: {} # permite disparo manual pela aba Actions
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamar endpoint de recertificação
+        run: |
+          if [ -z "${{ secrets.APP_URL }}" ] || [ -z "${{ secrets.CRON_API_KEY }}" ]; then
+            echo "Secrets APP_URL e/ou CRON_API_KEY não configurados neste repositório. Pulando (configure em Settings > Secrets and variables > Actions)."
+            exit 0
+          fi
+          curl -sf -X POST "${{ secrets.APP_URL }}/api/admin/recertification-check" \
+            -H "x-api-key: ${{ secrets.CRON_API_KEY }}"

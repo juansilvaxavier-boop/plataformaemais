@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Logo } from "@/components/logo";
 
 function LoginForm() {
@@ -73,7 +74,12 @@ function LoginForm() {
             {loading ? "Entrando..." : "Entrar"}
           </button>
         </form>
-        <div className="mt-6 text-center text-xs text-slate-400">
+        <div className="mt-4 text-center text-xs">
+          <Link href="/esqueci-senha" className="text-indigo-600 hover:underline">
+            Esqueci minha senha
+          </Link>
+        </div>
+        <div className="mt-4 text-center text-xs text-slate-400">
           SSO (Google, Microsoft Entra, Okta) disponível quando configurado pelo administrador.
         </div>
       </div>

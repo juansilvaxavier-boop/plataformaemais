@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import type { Role } from "@prisma/client";
-import { Button, Input, Label, Textarea } from "@/components/ui";
+import { Button, Input, Label, Select, Textarea } from "@/components/ui";
 import {
   setCoursePublished,
   setCourseTargetRoles,
@@ -12,6 +12,7 @@ import {
   runAIQuizGeneration,
   createManualQuiz,
   setCourseCompetencies,
+  manualAssignCourse,
 } from "../actions";
 import { Plus, Trash2 } from "lucide-react";
 
@@ -396,6 +397,48 @@ export function CompetencyForm({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+export function ManualAssignForm({
+  courseId,
+  candidates,
+}: {
+  courseId: string;
+  candidates: { id: string; name: string; email: string }[];
+}) {
+  const [userId, setUserId] = useState(candidates[0]?.id ?? "");
+  const [isPending, startTransition] = useTransition();
+  const [done, setDone] = useState(false);
+
+  if (candidates.length === 0) {
+    return <p className="text-xs text-slate-400">Todos os colaboradores ativos já estão matriculados.</p>;
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Select value={userId} onChange={(e) => setUserId(e.target.value)}>
+        {candidates.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name} ({c.email})
+          </option>
+        ))}
+      </Select>
+      <Button
+        size="sm"
+        disabled={isPending}
+        onClick={() =>
+          startTransition(async () => {
+            await manualAssignCourse(courseId, userId);
+            setDone(true);
+            setTimeout(() => setDone(false), 2000);
+          })
+        }
+      >
+        Atribuir
+      </Button>
+      {done && <span className="text-xs text-emerald-600">Atribuído!</span>}
     </div>
   );
 }

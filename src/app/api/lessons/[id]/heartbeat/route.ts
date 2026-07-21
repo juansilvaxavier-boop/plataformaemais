@@ -4,17 +4,19 @@ import { prisma } from "@/lib/db";
 import { awardPoints, checkAndAwardBadges, POINTS } from "@/lib/gamification";
 import { evaluateCourseCompletion, touchDailyEngagement } from "@/lib/enrollment";
 import { notifyUser } from "@/lib/notifications";
-
-// Tolerância para variações naturais do player (buffering, intervalo do heartbeat).
-const SEEK_TOLERANCE_SECONDS = 5;
-// Percentual mínimo assistido para considerar a aula 100% concluída.
-const COMPLETION_THRESHOLD = 0.98;
+import { assertRateLimit } from "@/lib/rate-limit";
+import { evaluateHeartbeat } from "@/lib/heartbeat";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
+
+  // Heartbeat legítimo ocorre a cada ~4s por aula assistida; 90/min dá
+  // margem para múltiplas abas sem abrir espaço para abuso.
+  const rateLimited = assertRateLimit(req, "heartbeat", 90, 60 * 1000, session.user.id);
+  if (rateLimited) return rateLimited;
 
   const { id: lessonId } = await params;
   const body = await req.json().catch(() => null);
@@ -42,19 +44,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   // Bloqueia o adiantamento manual da barra: o cliente não pode reportar uma
   // posição muito além do que já foi efetivamente reproduzido e validado.
-  if (positionSeconds > currentMax + SEEK_TOLERANCE_SECONDS) {
+  const heartbeat = evaluateHeartbeat({ currentMax, positionSeconds, durationSeconds: duration });
+  if (!heartbeat.allowed) {
     return NextResponse.json(
       {
         error: "Salto na reprodução detectado. Reprodução contínua é obrigatória.",
-        maxWatchedSeconds: currentMax,
+        maxWatchedSeconds: heartbeat.maxWatchedSeconds,
       },
       { status: 409 }
     );
   }
 
-  const newMax = Math.max(currentMax, positionSeconds);
-  const percent = duration > 0 ? Math.min(100, (newMax / duration) * 100) : 0;
-  const willComplete = duration > 0 && newMax / duration >= COMPLETION_THRESHOLD;
+  const { newMax, percent, willComplete } = heartbeat;
   const wasAlreadyComplete = existing?.completed ?? false;
 
   const progress = await prisma.lessonProgress.upsert({

@@ -1,16 +1,19 @@
 import { prisma } from "@/lib/db";
+import { sendEmail } from "@/lib/email";
 import type { NotificationType } from "@prisma/client";
 
 /**
- * Cria a notificação in-app e, quando configurado, replica para Slack/Teams
- * via webhook de entrada. E-mail é registrado como notificação (canal EMAIL);
- * a entrega real depende de um provedor SMTP/transacional configurado em produção.
+ * Cria a notificação in-app e replica para os canais configurados: e-mail
+ * (via SMTP, quando `SMTP_HOST` está definido) e, opcionalmente, Slack/Teams
+ * via webhook de entrada. Sem SMTP configurado, o conteúdo do e-mail
+ * continua disponível como notificação in-app (nenhum envio é perdido).
  */
 export async function notifyUser(params: {
   userId: string;
   type: NotificationType;
   title: string;
   body: string;
+  alsoEmail?: boolean;
   alsoSlack?: boolean;
   alsoTeams?: boolean;
 }) {
@@ -23,6 +26,20 @@ export async function notifyUser(params: {
       channel: "IN_APP",
     },
   });
+
+  if (params.alsoEmail ?? true) {
+    const user = await prisma.user.findUnique({
+      where: { id: params.userId },
+      select: { email: true },
+    });
+    if (user) {
+      await sendEmail({
+        to: user.email,
+        subject: params.title,
+        html: `<p>${params.body}</p>`,
+      }).catch(() => undefined);
+    }
+  }
 
   if (params.alsoSlack && process.env.SLACK_WEBHOOK_URL) {
     await sendWebhook(process.env.SLACK_WEBHOOK_URL, {

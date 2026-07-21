@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { autoAssignForRole } from "@/lib/enrollment";
 import { notifyUser } from "@/lib/notifications";
 import { logAudit } from "@/lib/audit";
+import { assertRateLimit } from "@/lib/rate-limit";
 
 /**
  * Webhook de entrada para integração com o sistema de RH (HRIS): quando um novo
@@ -19,6 +20,9 @@ export async function POST(req: NextRequest) {
   if (!apiKey || apiKey !== process.env.HRIS_WEBHOOK_API_KEY) {
     return NextResponse.json({ error: "Chave de API inválida." }, { status: 401 });
   }
+
+  const rateLimited = assertRateLimit(req, "hris-onboarding", 30, 60 * 60 * 1000);
+  if (rateLimited) return rateLimited;
 
   const body = await req.json().catch(() => null);
   const name = String(body?.name ?? "").trim();

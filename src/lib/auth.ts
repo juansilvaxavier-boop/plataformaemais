@@ -6,6 +6,7 @@ import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import Okta from "next-auth/providers/okta";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
+import { checkRateLimit } from "@/lib/rate-limit";
 import type { Role } from "@prisma/client";
 
 // Provedores de SSO (Google Workspace, Microsoft Entra/Azure AD, Okta) só são
@@ -58,10 +59,17 @@ export const authConfig: NextAuthConfig = {
         email: { label: "E-mail", type: "email" },
         password: { label: "Senha", type: "password" },
       },
-      authorize: async (credentials) => {
+      authorize: async (credentials, request) => {
         const email = credentials?.email as string | undefined;
         const password = credentials?.password as string | undefined;
         if (!email || !password) return null;
+
+        // Bloqueia força bruta: no máximo 10 tentativas a cada 10 minutos por
+        // e-mail alvo, e 30 por IP (cobre tentativas contra várias contas).
+        const ip = request?.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+        const withinEmailLimit = checkRateLimit(`login:email:${email}`, 10, 10 * 60 * 1000);
+        const withinIpLimit = checkRateLimit(`login:ip:${ip}`, 30, 10 * 60 * 1000);
+        if (!withinEmailLimit || !withinIpLimit) return null;
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user || !user.passwordHash || !user.active) return null;

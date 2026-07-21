@@ -15,10 +15,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   });
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex flex-col md:flex-row min-h-screen">
       <SidebarNav role={session.user.role} locale={user?.locale ?? "pt-BR"} />
-      <main className="flex-1 bg-slate-50 min-h-screen">
-        <div className="max-w-6xl mx-auto px-6 py-8">{children}</div>
+      <main className="flex-1 bg-slate-50 min-h-screen min-w-0">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8">{children}</div>
       </main>
     </div>
   );

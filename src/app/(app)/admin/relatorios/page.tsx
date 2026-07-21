@@ -33,9 +33,12 @@ export default async function RelatoriosPage() {
       <Card className="mb-6">
         <h3 className="font-semibold text-slate-800 mb-2 text-sm">Recertificação automática</h3>
         <p className="text-xs text-slate-500 mb-3">
-          Verifica cursos com validade vencida e reabre a matrícula para renovação. Em produção,
-          agende esta verificação via cron externo apontando para{" "}
-          <code className="bg-slate-100 px-1 rounded">POST /api/admin/recertification-check</code>.
+          Verifica cursos com validade vencida e reabre a matrícula para renovação. Já existe um
+          agendamento automático diário via{" "}
+          <code className="bg-slate-100 px-1 rounded">.github/workflows/recertification-cron.yml</code>{" "}
+          — basta configurar os secrets <code className="bg-slate-100 px-1 rounded">APP_URL</code> e{" "}
+          <code className="bg-slate-100 px-1 rounded">CRON_API_KEY</code> no repositório. O botão
+          abaixo dispara a mesma verificação manualmente.
         </p>
         <RecertificationCheckButton />
       </Card>

@@ -289,3 +289,35 @@ export async function setCourseCompetencies(courseId: string, entries: { skillId
   }
   revalidatePath(`/admin/cursos/${courseId}`);
 }
+
+/** Atribui manualmente este curso a um colaborador específico, fora das regras de cargo/departamento. */
+export async function manualAssignCourse(courseId: string, userId: string) {
+  const session = await requireInstructor();
+
+  const enrollment = await prisma.enrollment.upsert({
+    where: { userId_courseId: { userId, courseId } },
+    update: {},
+    create: { userId, courseId, assignedReason: "MANUAL" },
+  });
+
+  const course = await prisma.course.findUniqueOrThrow({ where: { id: courseId } });
+
+  const { notifyUser } = await import("@/lib/notifications");
+  await notifyUser({
+    userId,
+    type: "COURSE_ASSIGNED",
+    title: "Novo curso atribuído",
+    body: `O curso "${course.title}" foi atribuído a você.`,
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "COURSE_MANUALLY_ASSIGNED",
+    entityType: "Course",
+    entityId: courseId,
+    metadata: { targetUserId: userId },
+  });
+
+  revalidatePath(`/admin/cursos/${courseId}`);
+  return enrollment;
+}

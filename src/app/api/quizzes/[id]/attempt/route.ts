@@ -5,12 +5,18 @@ import { awardPoints, checkAndAwardBadges, POINTS } from "@/lib/gamification";
 import { evaluateCourseCompletion, touchDailyEngagement } from "@/lib/enrollment";
 import { notifyUser } from "@/lib/notifications";
 import { logAudit } from "@/lib/audit";
+import { assertRateLimit } from "@/lib/rate-limit";
+import { scoreQuiz } from "@/lib/quiz-scoring";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
+
+  // Impede força bruta de respostas: 10 tentativas a cada 10 minutos por usuário.
+  const rateLimited = assertRateLimit(req, "quiz-attempt", 10, 10 * 60 * 1000, session.user.id);
+  if (rateLimited) return rateLimited;
 
   const { id: quizId } = await params;
   const body = await req.json().catch(() => null);
@@ -30,21 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Quiz não encontrado." }, { status: 404 });
   }
 
-  let correctCount = 0;
-  for (const question of quiz.questions) {
-    const correctOptionIds = new Set(
-      question.options.filter((o) => o.isCorrect).map((o) => o.id)
-    );
-    const givenIds = new Set(answers[question.id] ?? []);
-    const isCorrect =
-      correctOptionIds.size === givenIds.size &&
-      [...correctOptionIds].every((id) => givenIds.has(id));
-    if (isCorrect) correctCount += 1;
-  }
-
-  const score =
-    quiz.questions.length > 0 ? Math.round((correctCount / quiz.questions.length) * 100) : 0;
-  const passed = score >= quiz.passingScore;
+  const { score, passed } = scoreQuiz(quiz.questions, answers, quiz.passingScore);
 
   const attempt = await prisma.quizAttempt.create({
     data: {
