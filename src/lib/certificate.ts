@@ -44,8 +44,18 @@ export async function renderCertificatePdf(certificateId: string): Promise<Uint8
     y: 20,
     width: width - 40,
     height: height - 40,
-    borderColor: rgb(0.24, 0.23, 0.6),
+    borderColor: rgb(0.043, 0.388, 0.314), // teal escuro da marca
     borderWidth: 3,
+  });
+
+  const brand = "EMAIS URBANISMO";
+  const brandSize = 13;
+  page.drawText(brand, {
+    x: (width - fontRegular.widthOfTextAtSize(brand, brandSize)) / 2,
+    y: height - 85,
+    size: brandSize,
+    font: fontRegular,
+    color: rgb(0.043, 0.388, 0.314),
   });
 
   const title = "Certificado de Conclusão";
@@ -55,7 +65,7 @@ export async function renderCertificatePdf(certificateId: string): Promise<Uint8
     y: height - 130,
     size: titleSize,
     font,
-    color: rgb(0.16, 0.15, 0.4),
+    color: rgb(0.071, 0.078, 0.102),
   });
 
   const name = certificate.user.name;
@@ -65,7 +75,7 @@ export async function renderCertificatePdf(certificateId: string): Promise<Uint8
     y: height - 230,
     size: nameSize,
     font,
-    color: rgb(0.05, 0.05, 0.1),
+    color: rgb(0.071, 0.078, 0.102),
   });
 
   const itemTitle = certificate.course?.title ?? certificate.learningPath?.title ?? "";
@@ -85,7 +95,7 @@ export async function renderCertificatePdf(certificateId: string): Promise<Uint8
     y: height - 305,
     size: itemSize,
     font,
-    color: rgb(0.16, 0.15, 0.4),
+    color: rgb(0.043, 0.388, 0.314),
   });
 
   const issued = `Emitido em ${formatDate(certificate.issuedAt)}`;
@@ -112,7 +122,7 @@ export async function renderCertificatePdf(certificateId: string): Promise<Uint8
     y: 65,
     size: 11,
     font: fontRegular,
-    color: rgb(0.3, 0.3, 0.6),
+    color: rgb(0.047, 0.490, 0.376),
   });
 
   return doc.save();

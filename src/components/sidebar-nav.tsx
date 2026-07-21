@@ -15,12 +15,12 @@ import {
   ShieldCheck,
   BarChart3,
   LogOut,
-  GraduationCap,
 } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { cn } from "@/lib/utils";
 import { t, type TranslationKey } from "@/lib/i18n";
 import { updateMyLocale } from "@/app/(app)/account-actions";
+import { Logo } from "@/components/logo";
 
 type NavItem = {
   href: string;
@@ -49,9 +49,8 @@ export function SidebarNav({ role, locale }: { role: Role; locale: string }) {
 
   return (
     <aside className="w-64 shrink-0 bg-slate-950 text-slate-200 flex flex-col min-h-screen">
-      <div className="flex items-center gap-2 px-5 py-5 border-b border-slate-800">
-        <GraduationCap className="text-indigo-400" size={26} />
-        <span className="font-bold text-white text-lg">Plataforma+</span>
+      <div className="px-5 py-5 border-b border-slate-800">
+        <Logo theme="dark" />
       </div>
       <nav className="flex-1 px-3 py-4 space-y-1">
         {NAV_ITEMS.filter((item) => !item.minRole || ROLE_RANK[role] >= ROLE_RANK[item.minRole]).map(

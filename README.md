@@ -1,6 +1,6 @@
-# Plataforma+ | LMS Corporativo
+# EMAIS Urbanismo | LMS Corporativo
 
-Plataforma de Treinamento Interno Corporativo: capacitação, compliance e um assistente de IA (RAG) integrados em um único ecossistema, conforme a especificação do sistema.
+Plataforma de Treinamento Interno Corporativo da EMAIS Urbanismo: capacitação, compliance e um assistente de IA (RAG) integrados em um único ecossistema, conforme a especificação do sistema.
 
 ## Stack
 

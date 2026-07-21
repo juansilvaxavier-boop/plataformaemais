@@ -39,7 +39,7 @@ export async function createUser(formData: FormData) {
   await notifyUser({
     userId: user.id,
     type: "GENERAL",
-    title: "Bem-vindo(a) à Plataforma+",
+    title: "Bem-vindo(a) à EMAIS Urbanismo",
     body: "Sua conta foi criada. Confira seus treinamentos atribuídos.",
   });
 

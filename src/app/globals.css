@@ -11,6 +11,27 @@
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
+/*
+ * Identidade visual EMAIS Urbanismo: sobrescreve a paleta "indigo" do Tailwind
+ * (usada como cor de marca em toda a interface) pelos tons de verde-azulado
+ * (teal) do logo, do mais claro ao mais escuro. Como os utilitários do
+ * Tailwind v4 referenciam essas variáveis via var(--color-indigo-*), a marca
+ * inteira é atualizada a partir deste único bloco.
+ */
+@theme {
+  --color-indigo-50: #eefcf7;
+  --color-indigo-100: #d5f5e8;
+  --color-indigo-200: #adebd3;
+  --color-indigo-300: #79dbb8;
+  --color-indigo-400: #43c79c;
+  --color-indigo-500: #1ab48a;
+  --color-indigo-600: #0f9974;
+  --color-indigo-700: #0c7d60;
+  --color-indigo-800: #0b6350;
+  --color-indigo-900: #0a4e3f;
+  --color-indigo-950: #063527;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

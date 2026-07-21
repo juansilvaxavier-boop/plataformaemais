@@ -1,0 +1,20 @@
+<svg width="200" height="200" viewBox="0 0 200 500" xmlns="http://www.w3.org/2000/svg">
+  <g stroke="white" stroke-width="6" stroke-linejoin="round">
+    <polygon points="0,0 100,0 0,100" fill="#1ab48a" />
+    <polygon points="100,0 100,100 0,100" fill="#0b6350" />
+    <polygon points="100,0 200,0 100,100" fill="#1ab48a" />
+    <polygon points="200,0 200,100 100,100" fill="#0b6350" />
+    <polygon points="0,100 100,100 0,200" fill="#1ab48a" />
+    <polygon points="100,100 100,200 0,200" fill="#0b6350" />
+    <polygon points="0,200 100,200 0,300" fill="#1ab48a" />
+    <polygon points="100,200 100,300 0,300" fill="#0b6350" />
+    <polygon points="100,215 200,215 100,285" fill="#1ab48a" />
+    <polygon points="200,215 200,285 100,285" fill="#0b6350" />
+    <polygon points="0,300 100,300 0,400" fill="#1ab48a" />
+    <polygon points="100,300 100,400 0,400" fill="#0b6350" />
+    <polygon points="0,400 100,400 0,500" fill="#1ab48a" />
+    <polygon points="100,400 100,500 0,500" fill="#0b6350" />
+    <polygon points="100,400 200,400 100,500" fill="#1ab48a" />
+    <polygon points="200,400 200,500 100,500" fill="#0b6350" />
+  </g>
+</svg>

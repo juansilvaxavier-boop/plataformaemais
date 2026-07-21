@@ -3,8 +3,8 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
-  title: "Plataforma+ | Treinamento Corporativo",
-  description: "LMS Corporativo: capacitação, compliance e IA em um só lugar.",
+  title: "EMAIS Urbanismo | Treinamento Corporativo",
+  description: "LMS Corporativo EMAIS Urbanismo: capacitação, compliance e IA em um só lugar.",
 };
 
 export default function RootLayout({

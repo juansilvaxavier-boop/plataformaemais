@@ -3,7 +3,7 @@
 import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { GraduationCap } from "lucide-react";
+import { Logo } from "@/components/logo";
 
 function LoginForm() {
   const router = useRouter();
@@ -35,9 +35,8 @@ function LoginForm() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 p-4">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8">
-        <div className="flex items-center gap-2 mb-6 justify-center">
-          <GraduationCap className="text-indigo-600" size={32} />
-          <span className="text-xl font-bold text-slate-900">Plataforma+</span>
+        <div className="flex justify-center mb-6">
+          <Logo />
         </div>
         <h1 className="text-lg font-semibold text-center text-slate-700 mb-6">
           Acesse sua conta de treinamento

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
-import { CheckCircle2, XCircle, GraduationCap } from "lucide-react";
+import { CheckCircle2, XCircle } from "lucide-react";
+import { Logo } from "@/components/logo";
 
 export default async function VerifyPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
@@ -13,9 +14,9 @@ export default async function VerifyPage({ params }: { params: Promise<{ code: s
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
       <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl p-8">
-        <div className="flex items-center gap-2 mb-6 justify-center">
-          <GraduationCap className="text-indigo-600" size={28} />
-          <span className="text-lg font-bold text-slate-900">Plataforma+ | Verificação de Certificado</span>
+        <div className="flex flex-col items-center gap-2 mb-6">
+          <Logo />
+          <span className="text-sm font-medium text-slate-500">Verificação de Certificado</span>
         </div>
 
         {certificate ? (
