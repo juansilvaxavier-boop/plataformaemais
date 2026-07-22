@@ -1,5 +1,12 @@
+import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { authConfig } from "@/lib/auth.config";
+
+// Instância "leve" do NextAuth, só para o middleware (Edge Runtime): usa a
+// configuração sem Prisma/bcrypt/OAuth para não estourar o limite de tamanho
+// de Edge Function da Vercel. A sessão já vem com uid/role no JWT (definidos
+// no login pela config completa em src/lib/auth.ts), então basta decodificá-la.
+const { auth } = NextAuth(authConfig);
 
 const ADMIN_ONLY_PREFIXES = ["/admin"];
 const MANAGER_PREFIXES = ["/manager"];

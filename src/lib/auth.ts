@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
 import type { Role } from "@prisma/client";
+import { authConfig } from "@/lib/auth.config";
 
 // Provedores de SSO (Google Workspace, Microsoft Entra/Azure AD, Okta) só são
 // ativados quando as credenciais correspondentes existem no ambiente. Sem elas,
@@ -47,11 +48,8 @@ if (process.env.AUTH_OKTA_ID && process.env.AUTH_OKTA_SECRET && process.env.AUTH
   );
 }
 
-export const authConfig: NextAuthConfig = {
-  session: { strategy: "jwt" },
-  pages: {
-    signIn: "/login",
-  },
+const fullAuthConfig: NextAuthConfig = {
+  ...authConfig,
   providers: [
     Credentials({
       name: "credentials",
@@ -129,4 +127,4 @@ export const authConfig: NextAuthConfig = {
   },
 };
 
-export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
+export const { handlers, auth, signIn, signOut } = NextAuth(fullAuthConfig);
