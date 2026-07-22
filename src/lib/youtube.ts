@@ -1,39 +1,47 @@
-const YOUTUBE_HOSTS = new Set([
-  "youtube.com",
-  "www.youtube.com",
-  "m.youtube.com",
-  "youtu.be",
-  "www.youtu.be",
-]);
-
 /**
  * Extrai o ID de um vídeo do YouTube a partir de qualquer formato comum de
- * URL (watch, youtu.be, embed, shorts). Vídeos "não listados" (o equivalente
- * a "privado com link") funcionam normalmente em iframes, pois o YouTube só
- * bloqueia embed de vídeos totalmente privados (restritos à conta do dono).
+ * URL (watch, youtu.be, embed, shorts, live), com ou sem protocolo/www.
+ *
+ * Importante (limitação da própria plataforma, não do código): o YouTube só
+ * permite embutir vídeos com visibilidade "Não listado" ou "Público". Um
+ * vídeo marcado como "Privado" nunca é reproduzível fora do youtube.com pela
+ * conta do dono — para usar aqui, o vídeo precisa estar como "Não listado".
  */
-export function extractYouTubeVideoId(url: string): string | null {
-  if (!url) return null;
+export function extractYouTubeVideoId(rawUrl: string): string | null {
+  const trimmed = rawUrl?.trim();
+  if (!trimmed) return null;
+
   let parsed: URL;
   try {
-    parsed = new URL(url);
+    parsed = new URL(trimmed);
   } catch {
-    return null;
+    // Aceita URLs coladas sem protocolo (ex.: "www.youtube.com/watch?v=...").
+    try {
+      parsed = new URL(`https://${trimmed}`);
+    } catch {
+      return null;
+    }
   }
 
-  if (!YOUTUBE_HOSTS.has(parsed.hostname)) return null;
+  const hostname = parsed.hostname.toLowerCase().replace(/^www\./, "");
+  const isYouTubeHost = hostname === "youtube.com" || hostname.endsWith(".youtube.com");
+  const isShortHost = hostname === "youtu.be" || hostname.endsWith(".youtu.be");
+  if (!isYouTubeHost && !isShortHost) return null;
 
-  if (parsed.hostname.endsWith("youtu.be")) {
-    const id = parsed.pathname.slice(1);
+  const cleanId = (segment: string | null) => {
+    if (!segment) return null;
+    const id = segment.replace(/\/+$/, "");
     return id || null;
+  };
+
+  if (isShortHost) {
+    return cleanId(parsed.pathname.slice(1));
   }
 
-  if (parsed.pathname.startsWith("/embed/")) {
-    return parsed.pathname.replace("/embed/", "") || null;
-  }
-
-  if (parsed.pathname.startsWith("/shorts/")) {
-    return parsed.pathname.replace("/shorts/", "") || null;
+  for (const prefix of ["/embed/", "/shorts/", "/live/"]) {
+    if (parsed.pathname.startsWith(prefix)) {
+      return cleanId(parsed.pathname.slice(prefix.length));
+    }
   }
 
   return parsed.searchParams.get("v");

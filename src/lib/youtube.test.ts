@@ -14,6 +14,10 @@ describe("extractYouTubeVideoId", () => {
     expect(extractYouTubeVideoId("https://youtu.be/abc123XYZ_")).toBe("abc123XYZ_");
   });
 
+  it("extracts the id from a youtu.be link with tracking query params", () => {
+    expect(extractYouTubeVideoId("https://youtu.be/abc123XYZ_?si=trackingtoken")).toBe("abc123XYZ_");
+  });
+
   it("extracts the id from an embed URL", () => {
     expect(extractYouTubeVideoId("https://www.youtube.com/embed/abc123XYZ_")).toBe("abc123XYZ_");
   });
@@ -22,12 +26,29 @@ describe("extractYouTubeVideoId", () => {
     expect(extractYouTubeVideoId("https://www.youtube.com/shorts/abc123XYZ_")).toBe("abc123XYZ_");
   });
 
+  it("extracts the id from a live URL", () => {
+    expect(extractYouTubeVideoId("https://www.youtube.com/live/abc123XYZ_")).toBe("abc123XYZ_");
+  });
+
+  it("accepts a URL pasted without protocol", () => {
+    expect(extractYouTubeVideoId("www.youtube.com/watch?v=abc123XYZ_")).toBe("abc123XYZ_");
+    expect(extractYouTubeVideoId("youtu.be/abc123XYZ_")).toBe("abc123XYZ_");
+  });
+
+  it("trims surrounding whitespace", () => {
+    expect(extractYouTubeVideoId("  https://youtu.be/abc123XYZ_  ")).toBe("abc123XYZ_");
+  });
+
+  it("handles a trailing slash on short/embed links", () => {
+    expect(extractYouTubeVideoId("https://youtu.be/abc123XYZ_/")).toBe("abc123XYZ_");
+  });
+
   it("returns null for a non-YouTube URL", () => {
     expect(extractYouTubeVideoId("https://example.com/video.mp4")).toBeNull();
   });
 
   it("returns null for an invalid URL", () => {
-    expect(extractYouTubeVideoId("not-a-url")).toBeNull();
+    expect(extractYouTubeVideoId("not a url at all")).toBeNull();
   });
 
   it("returns null for an empty string", () => {
