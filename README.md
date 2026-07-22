@@ -42,8 +42,8 @@ Acesse `http://localhost:3000`. Contas de exemplo (senha `senha123` para todas):
 ## Funcionalidades implementadas
 
 ### Core
-- **Gestão de treinamentos**: cursos → módulos → aulas (vídeo/PDF/apresentação) → materiais de apoio, com transcrição opcional
-- **RBAC por cargo/departamento**: papéis `ADMIN > MANAGER > INSTRUCTOR > EMPLOYEE`; cursos e trilhas podem ser direcionados por papel e/ou departamento com matrícula automática
+- **Gestão de treinamentos**: cursos → módulos → aulas (vídeo/PDF/apresentação) → materiais de apoio para download, com transcrição opcional. Vídeos aceitam link do YouTube (inclusive não listado — o sistema detecta a URL e gera o player embutido via IFrame API) ou upload/URL de arquivo direto (mp4); o heartbeat anti-fraude funciona nos dois casos.
+- **RBAC por cargo/departamento**: papéis `ADMIN > MANAGER > INSTRUCTOR > EMPLOYEE`; cursos e trilhas podem ser direcionados por papel e/ou departamento com matrícula automática. Os **cargos** (jobTitle) de cada departamento são cadastráveis em `/admin/departamentos` e sugeridos automaticamente ao criar um colaborador.
 - **Validação estrita de reprodução (100%)**: heartbeat periódico (`POST /api/lessons/:id/heartbeat`) valida a posição do vídeo no servidor; qualquer salto acima da tolerância (5s) é rejeitado com HTTP 409 e o player é realinhado; a aula só é marcada como concluída ao atingir 98%+ de reprodução
 - **Certificados automáticos em PDF** com código de verificação único e página pública `/verify/[codigo]`
 - **Assistente de IA (RAG)**: indexa transcrições de aulas e materiais (`DocumentChunk` + pgvector), respondendo no chat lateral do curso com base no conteúdo indexado

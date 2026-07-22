@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { assertRole } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { PageHeader, Card, Button, Input, Label } from "@/components/ui";
-import { createDepartment, deleteDepartment } from "./actions";
+import { createDepartment, deleteDepartment, createJobRole, deleteJobRole } from "./actions";
 import { Trash2 } from "lucide-react";
 
 export default async function DepartamentosPage() {
@@ -10,7 +10,7 @@ export default async function DepartamentosPage() {
   assertRole(session?.user?.role, "ADMIN");
 
   const departments = await prisma.department.findMany({
-    include: { _count: { select: { users: true } } },
+    include: { _count: { select: { users: true } }, jobRoles: { orderBy: { name: "asc" } } },
     orderBy: { name: "asc" },
   });
 
@@ -66,6 +66,61 @@ export default async function DepartamentosPage() {
           </tbody>
         </table>
       </Card>
+
+      <div className="mt-8">
+        <h2 className="font-semibold text-slate-800 mb-1">Cargos por departamento</h2>
+        <p className="text-sm text-slate-500 mb-4">
+          Cadastre os cargos existentes em cada departamento. Eles aparecem como sugestão ao
+          cadastrar um colaborador.
+        </p>
+
+        {departments.length === 0 && (
+          <p className="text-sm text-slate-400">Cadastre um departamento primeiro.</p>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {departments.map((d) => (
+            <Card key={d.id}>
+              <h3 className="font-medium text-slate-800 mb-3">{d.name}</h3>
+
+              <div className="flex flex-wrap gap-2 mb-3">
+                {d.jobRoles.map((jr) => (
+                  <span
+                    key={jr.id}
+                    className="inline-flex items-center gap-1.5 text-xs bg-slate-100 text-slate-700 rounded-full pl-3 pr-1.5 py-1"
+                  >
+                    {jr.name}
+                    <form
+                      action={async () => {
+                        "use server";
+                        await deleteJobRole(jr.id);
+                      }}
+                    >
+                      <button className="text-slate-400 hover:text-red-600" title="Remover cargo">
+                        <Trash2 size={12} />
+                      </button>
+                    </form>
+                  </span>
+                ))}
+                {d.jobRoles.length === 0 && (
+                  <span className="text-xs text-slate-400">Nenhum cargo cadastrado.</span>
+                )}
+              </div>
+
+              <form action={createJobRole} className="flex items-end gap-2">
+                <input type="hidden" name="departmentId" value={d.id} />
+                <div className="flex-1">
+                  <Label className="text-xs">Novo cargo</Label>
+                  <Input name="name" placeholder="Ex.: Analista de Marketing" required />
+                </div>
+                <Button type="submit" size="sm">
+                  Adicionar
+                </Button>
+              </form>
+            </Card>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

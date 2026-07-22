@@ -159,7 +159,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
                     <ul className="text-xs text-slate-600 space-y-1 mb-2">
                       {lesson.materials.map((m) => (
                         <li key={m.id} className="flex items-center justify-between">
-                          <a href={m.url} target="_blank" className="text-indigo-600 hover:underline">
+                          <a href={m.url} target="_blank" download={m.name} className="text-indigo-600 hover:underline">
                             {m.name} ({m.type})
                           </a>
                           <form
@@ -216,7 +216,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
                     <option value="PDF">PDF</option>
                     <option value="PRESENTATION">Apresentação</option>
                   </Select>
-                  <Input name="videoUrl" placeholder="URL do vídeo (mp4)" />
+                  <UploadOrUrlField name="videoUrl" placeholder="Link do YouTube (não listado) ou envie um arquivo de vídeo" />
                   <Input name="videoDurationSeconds" type="number" placeholder="Duração (segundos)" />
                   <textarea
                     name="transcript"

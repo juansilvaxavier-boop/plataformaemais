@@ -9,7 +9,7 @@ export default async function UsuariosPage() {
   const session = await auth();
   assertRole(session?.user?.role, "ADMIN");
 
-  const [users, departments, managers] = await Promise.all([
+  const [users, departments, managers, jobRoles] = await Promise.all([
     prisma.user.findMany({
       include: { department: true, manager: true },
       orderBy: { createdAt: "desc" },
@@ -19,6 +19,7 @@ export default async function UsuariosPage() {
       where: { role: { in: ["MANAGER", "ADMIN"] } },
       orderBy: { name: "asc" },
     }),
+    prisma.jobRole.findMany({ orderBy: { name: "asc" }, distinct: ["name"] }),
   ]);
 
   return (
@@ -45,7 +46,12 @@ export default async function UsuariosPage() {
           </div>
           <div>
             <Label>Cargo</Label>
-            <Input name="jobTitle" placeholder="Ex.: Analista de Marketing" />
+            <Input name="jobTitle" placeholder="Ex.: Analista de Marketing" list="cargos-sugestoes" />
+            <datalist id="cargos-sugestoes">
+              {jobRoles.map((jr) => (
+                <option key={jr.id} value={jr.name} />
+              ))}
+            </datalist>
           </div>
           <div>
             <Label>Papel (RBAC)</Label>

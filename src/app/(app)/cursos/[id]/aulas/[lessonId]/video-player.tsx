@@ -3,22 +3,41 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
+import { extractYouTubeVideoId } from "@/lib/youtube";
+import { YouTubePlayer } from "./youtube-player";
 
 const HEARTBEAT_INTERVAL_MS = 4000;
 
-export function VideoPlayer({
-  lessonId,
-  videoUrl,
-  hasCaptions,
-  initialMaxWatched,
-  initialCompleted,
-}: {
+type VideoPlayerProps = {
   lessonId: string;
   videoUrl: string;
   hasCaptions: boolean;
   initialMaxWatched: number;
   initialCompleted: boolean;
-}) {
+};
+
+export function VideoPlayer(props: VideoPlayerProps) {
+  const youTubeVideoId = extractYouTubeVideoId(props.videoUrl);
+  if (youTubeVideoId) {
+    return (
+      <YouTubePlayer
+        lessonId={props.lessonId}
+        videoId={youTubeVideoId}
+        initialMaxWatched={props.initialMaxWatched}
+        initialCompleted={props.initialCompleted}
+      />
+    );
+  }
+  return <NativeVideoPlayer {...props} />;
+}
+
+function NativeVideoPlayer({
+  lessonId,
+  videoUrl,
+  hasCaptions,
+  initialMaxWatched,
+  initialCompleted,
+}: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const maxWatchedRef = useRef(initialMaxWatched);
   const router = useRouter();

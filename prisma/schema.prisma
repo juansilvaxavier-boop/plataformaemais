@@ -105,11 +105,23 @@ model Department {
   createdAt DateTime @default(now())
 
   users             User[]
+  jobRoles          JobRole[]
   learningPathRules LearningPathTargetDepartment[]
   courseRules       CourseTargetDepartment[]
   competencyGaps    UserCompetency[]                @relation("DepartmentCompetencySnapshot")
 
   @@map("departments")
+}
+
+model JobRole {
+  id           String     @id @default(cuid())
+  name         String
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([departmentId, name])
+  @@map("job_roles")
 }
 
 model User {

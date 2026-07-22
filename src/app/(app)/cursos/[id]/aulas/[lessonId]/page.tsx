@@ -67,6 +67,7 @@ export default async function LessonPage({
                     <a
                       href={m.url}
                       target="_blank"
+                      download={m.name}
                       className="text-sm text-indigo-600 hover:underline flex items-center gap-2"
                     >
                       <FileText size={14} /> {m.name}
